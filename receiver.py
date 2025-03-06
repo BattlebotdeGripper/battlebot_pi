@@ -7,7 +7,6 @@ class ReceiverData:
     def __init__(self):    
         serial_init = ReceiverInit()
         self.serial = serial_init.getSerialConnection()                             
-        # led = Led()
         self.control = Control()
 
     def readData(self):
@@ -37,9 +36,6 @@ class ReceiverData:
                 print(f"Fout tijdens uitlezen van iBUS data: {e}")
                 self.serial.reset_input_buffer()
                 time.sleep(1) 
-
-    def writeData(self):
-        pass
 
 if __name__ == "__main__":
     try:

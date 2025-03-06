@@ -5,7 +5,10 @@ class ReceiverInit:
         self.url = url  
         self.baudrate = baudrate  
         self.timeout = timeout
+        self.serial = None
+        self.setUpSerialConnection()
 
+    def setUpSerialConnection(self):
         try:
             self.serial = serial.Serial(self.url, self.baudrate, timeout=self.timeout)
             print(f"Verbonden met {self.url} op {self.baudrate} baud")

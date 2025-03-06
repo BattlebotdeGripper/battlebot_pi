@@ -1,4 +1,10 @@
+colorzero==2.0
 gpiozero==2.0.1
 lgpio==0.2.2.0
+msgpack==1.1.0
+packaging==24.2
 pigpio==1.78
 pyserial==3.5
+python-can==4.5.0
+typing_extensions==4.12.2
+wrapt==1.17.2

@@ -1,19 +1,23 @@
-# from test_led import Led
-
+from led import Led
+from mcp2515 import MCP2515
+from time import sleep
 class Control:
     def __init__(self):
-        # self.leds = Led()
-        pass
+        self.mcp2515 = MCP2515()
+        self.led = Led(self.mcp2515)
 
-    def run(self, channel_values):        
-        # while True:
-            # channel_values = Receiver.readData()
-            # print(channel_values)
-        if channel_values:
-            print(f"{channel_values}")
-            # Leds.controlLeds(channel_values)
-            pass
+    def run(self):   
+        try:            
+            self.mcp2515.init_mcp2515()
+            while True:
+                self.led.set_led_on()
+                sleep(2)
+                self.led.set_led_off()
+                sleep(2)
 
+        finally:
+            self.mcp2515.close_mcp2515()     
+            
 if __name__ == "__main__":
-    pass
-    # call_control = Control()
+    call_control = Control()
+    call_control.run()
