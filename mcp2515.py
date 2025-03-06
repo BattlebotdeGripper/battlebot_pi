@@ -31,7 +31,7 @@ class MCP2515:
             try:
                 message = can.Message(arbitration_id=id, data=data, is_extended_id=False)
                 self.bus.send(message)
-                print("Led is aan")
+                print("CAN-Bus bericht succesvol gestuurd!")
 
             except can.CanError:
                 print("Something went wrong with the bus config and the message is not send")
