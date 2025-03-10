@@ -5,14 +5,17 @@ class Control:
     def __init__(self):
         self.mcp2515 = MCP2515()
 
-    def run(self):   
+    def run(self, data):   
         try:            
-            self.mcp2515.init_mcp2515()
-            while True:
-                pass
+            self.mcp2515.initMcp2515()
+            # while True:
 
+            if data["can_id"] == 100:
+                print(f"{data}")
+                self.mcp2515.sendCanMessage(data["can_id"], data["data"])
+            sleep(0.1) 
         finally:
-            self.mcp2515.close_mcp2515()     
+            self.mcp2515.closeMcp2515()     
             
 if __name__ == "__main__":
     call_control = Control()

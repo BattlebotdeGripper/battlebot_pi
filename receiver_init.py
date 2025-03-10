@@ -6,7 +6,6 @@ class ReceiverInit:
         self.baudrate = baudrate  
         self.timeout = timeout
         self.serial = None
-        self.setUpSerialConnection()
 
     def setUpSerialConnection(self):
         try:
@@ -20,3 +19,4 @@ class ReceiverInit:
 
     def getSerialConnection(self):
         return self.serial
+

@@ -8,16 +8,7 @@ class MCP2515:
         self.bustype = bustype
         self.bus = None
 
-    def spi_transfer():
-        pass
-
-    def read_register():
-        pass
-
-    def write_register():
-        pass
-
-    def init_mcp2515(self):
+    def initMcp2515(self):
         try:
             self.bus = can.interface.Bus(channel=self.channel, bustype=self.bustype)
             print(f"Verbonden met {self.bus} op channel {self.channel} with bustype {self.bustype}")
@@ -26,7 +17,7 @@ class MCP2515:
             print(f"Kan niet de bus interface openen: {e}")
             self.bus = None
 
-    def send_can_message(self, id, data):
+    def sendCanMessage(self, id, data):
         if self.bus:
             try:
                 message = can.Message(arbitration_id=id, data=data, is_extended_id=False)
@@ -38,10 +29,19 @@ class MCP2515:
         else:
             print("CAN bus is not initialized. Cannot send message.")
 
-    def close_mcp2515(self):
+    def closeMcp2515(self):
         if self.bus:
             self.bus.shutdown()
             print("CAN bus gesloten")
 
-    def receive_can_message():
+    def receiveCanMessage(self):
+        if self.bus:
+            try:
+                message = self.bus.recv()
+                print(f"Received: ID={hex(message.arbitration_id)}, Data={list(message.data)}")
+
+            except can.CanError:  
+                print("Something went wrong with the bus config and the message is not receiving")
+        else:
+            print("CAN bus is not initialized. Cannot receive message.")
         pass
