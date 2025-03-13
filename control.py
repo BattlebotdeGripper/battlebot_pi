@@ -1,22 +1,28 @@
-from mcp2515 import MCP2515
-from time import sleep
+import time
+from receiver import ReceiverData
 
 class Control:
     def __init__(self):
-        self.mcp2515 = MCP2515()
+        self.receiver = ReceiverData()
+        self.receiver.callReceiverInit()
+        self.receiver.start()
 
-    def run(self, data):   
-        try:            
-            self.mcp2515.initMcp2515()
-            # while True:
+    def run(self):
+        while True:
+            data = self.receiver.getLatestData()
+            if data:
+                print(f"Ontvangen data in Control: {data}")
+                # print(type(data))
+            time.sleep(0.025) # Deze kan veranderd worden om een snellere verbinding te krijgen!
 
-            if data["can_id"] == 100:
-                print(f"{data}")
-                self.mcp2515.sendCanMessage(data["can_id"], data["data"])
-            sleep(0.1) 
-        finally:
-            self.mcp2515.closeMcp2515()     
-            
+    def start(self):
+        self.run() 
+
 if __name__ == "__main__":
-    call_control = Control()
-    call_control.run()
+    control = Control()
+
+    try:
+        control.start() 
+    except KeyboardInterrupt:
+        print("\nAfsluiten van Control...")
+        control.receiver.stop() 

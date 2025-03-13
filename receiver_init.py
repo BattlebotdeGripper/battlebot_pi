@@ -18,5 +18,6 @@ class ReceiverInit:
             self.serial = None
 
     def getSerialConnection(self):
+        self.setUpSerialConnection()
         return self.serial
 
