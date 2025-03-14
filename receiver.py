@@ -18,13 +18,16 @@ class ReceiverData:
             print("Seriële verbinding met ontvanger succesvol opgezet.")
         else:
             print("Fout bij het opzetten van de seriële verbinding.")
+        print(f"DEBUG: Seriele verbinding status: {self.serial}")
 
     def readData(self):
+        print("DEBUG: Thread readData() gestart.")
         if self.serial is None:
             print("Geen actieve seriële verbinding. Stoppen...")
             return
 
         while self.running:
+            # print("DEBUG: readData() is actief")
             try:
                 while self.serial.in_waiting < 32:
                     time.sleep(0.01) 
@@ -51,10 +54,14 @@ class ReceiverData:
     def start(self):
         thread = threading.Thread(target=self.readData, daemon=True)
         thread.start()
+        print(f"DEBUG: Thread gestart: {thread.is_alive()}")
 
     def stop(self):
+        print("DEBUG: Stopen van ReceiverData!")
         self.running = False
-        time.sleep(1)
+        if self.serial: 
+            self.serial.close()
+        print("DEBUG: RecveiverDAta gestopt!")
 
 if __name__ == "__main__":
     receiver = ReceiverData()
