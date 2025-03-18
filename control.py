@@ -1,7 +1,8 @@
 import time
+import serial
 from receiver.receiver import ReceiverData
-from movement.drive import Drive
-from movement.gripper import Gripper
+# from usb.connection import USBConnection
+from usb.connection import sendSerial
 
 class Control:
 
@@ -12,38 +13,32 @@ class Control:
         self.receiver = ReceiverData()
         self.receiver.callReceiverInit()
         self.receiver.start()
-        self.drive = Drive()
-        self.gripper = Gripper()
+        # self.usb_connection = USBConnection()
+        self.ser = serial.Serial("/dev/ttyACM0", baudrate=115200, timeout=1)
 
     def run(self):
+
         while True:
             data = self.receiver.getLatestData()
             if data:
-                print(data)
                 str_data = f"{data}\n"
-                # print(f"3 channels: {str_data}")
+
                 try:
-                    linkerwiel, rechterwiel = int(data[0]), int(data[1])
-                    gripper = int(data[2])
+                    # self.usb_connection.sendSerial(str_data)
+                    # sendSerial(str_data)
+                    self.ser.write((str_data + "\n").encode())
+                    self.ser.flush()
 
-                    self.drive.run(linkerwiel, rechterwiel)
-                    self.gripper.run(gripper)
-
-                    # linkerwiel, rechterwiel, gripper_value = map(int, data.split(","))
-                    # self.drive.run(linkerwiel, rechterwiel)
-                    # self.gripper.run(gripper_value)
                 except ValueError:
                     print("Geen geldige data ontvangen!")
-            time.sleep(0.01) # Deze kan veranderd worden om een snellere verbinding te krijgen!
 
-    # def start(self):
-    #     self.run() 
+            time.sleep(0.5) # Deze kan veranderd worden om een snellere verbinding te krijgen!
 
 if __name__ == "__main__":
     control = Control()
 
     try:
         control.run() 
+
     except KeyboardInterrupt:
         print("\nAfsluiten van Control...")
-        # control.receiver.stop() 
