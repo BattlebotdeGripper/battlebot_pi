@@ -1,8 +1,8 @@
 import time
 import serial
 from receiver.receiver import ReceiverData
-# from usb.connection import USBConnection
-from usb.connection import sendSerial
+from usb.connection import USBConnection
+# from usb.connection import sendSerial
 
 class Control:
 
@@ -13,8 +13,10 @@ class Control:
         self.receiver = ReceiverData()
         self.receiver.callReceiverInit()
         self.receiver.start()
-        # self.usb_connection = USBConnection()
+        self.usb_connection = USBConnection()
         self.ser = serial.Serial("/dev/ttyACM0", baudrate=115200, timeout=1)
+        self.ser.setDTR(False)
+        self.ser.setRTS(False)  
 
     def run(self):
 
@@ -24,15 +26,16 @@ class Control:
                 str_data = f"{data}\n"
 
                 try:
-                    # self.usb_connection.sendSerial(str_data)
+                    self.usb_connection.sendSerial(str_data)
                     # sendSerial(str_data)
-                    self.ser.write((str_data + "\n").encode())
-                    self.ser.flush()
-
+                    # self.ser.write((str_data + "\n").encode())
+                    # self.ser.flush()
+                    print(str_data)
+                    pass
                 except ValueError:
                     print("Geen geldige data ontvangen!")
 
-            time.sleep(0.5) # Deze kan veranderd worden om een snellere verbinding te krijgen!
+            time.sleep(0.1) # Deze kan veranderd worden om een snellere verbinding te krijgen!
 
 if __name__ == "__main__":
     control = Control()
