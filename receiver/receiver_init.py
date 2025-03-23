@@ -1,13 +1,13 @@
 import serial
 
 class ReceiverInit:
-    def __init__(self, url="/dev/serial0", baudrate=115200, timeout=1):
-        self.url = url  
-        self.baudrate = baudrate  
-        self.timeout = timeout
-        self.serial = None
+    def __init__(self) -> None:
+        self.url: str = "/dev/serial0"
+        self.baudrate: int = 115200
+        self.timeout: int = 1
+        self.serial: serial.Serial | None = None
 
-    def setUpSerialConnection(self):
+    def setUpSerialConnection(self) -> None:
         try:
             self.serial = serial.Serial(self.url, self.baudrate, timeout=self.timeout)
             print(f"Verbonden met {self.url} op {self.baudrate} baud")
@@ -17,6 +17,7 @@ class ReceiverInit:
             print(f"Kan seriële verbinding niet openen: {e}")
             self.serial = None
 
-    def getSerialConnection(self):
+    def getSerialConnection(self) -> serial.Serial | None:
+        if self.serial == None:
+            self.setUpSerialConnection()
         return self.serial
-
