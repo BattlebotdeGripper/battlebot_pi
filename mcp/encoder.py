@@ -1,10 +1,12 @@
 from typing import Tuple, List
 from mcp.mcp2515 import MCP2515
+from datetime import datetime, timedelta
 
-class CANEncoder():
+class CANEncoder:
 
     def __init__(self) -> None:
         self.mcp2515: MCP2515 | None = None
+        self.start_time = datetime.now()
 
     def callMCP2515Instance(self) -> "CANEncoder":
         if self.mcp2515 is None:
@@ -58,3 +60,19 @@ class CANEncoder():
 
     def sendHeartbeat(self) -> None:
         pass
+
+    def checkEncoders(self) -> bool:
+        if self.mcp2515 is None:
+            print("MCP2515 instantie niet geïnitialiseerd")
+            return False
+
+        now = datetime.now()
+        if now >= self.start_time + timedelta(seconds=20):
+            print("20 seconden verstreken, start signaal verzenden via CAN!")
+            # can_id: int = 0x200
+            # data = [0x01]
+            # self.mcp2515.sendCanMessage(can_id, data)
+            return True
+
+        return False
+

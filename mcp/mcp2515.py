@@ -1,5 +1,5 @@
-import can
-from typing import Optional
+import can 
+from typing import Optional, Tuple, List
 
 class MCP2515:
     
@@ -7,16 +7,24 @@ class MCP2515:
         self.channel: str = "can0"
         self.bustype: str = "socketcan"
         self.bus: Optional[can.BusABC] = None
+        self.bitrate: int = 500000
 
-    def initMcp2515(self) -> None:
+    def initMcp2515(self) -> bool:
         try:
-            self.bus = can.interface.Bus(channel=self.channel, bustype=self.bustype)
+            # self.bus = can.interface.Bus(channel=self.channel, bustype=self.bustype)
+            self.bus = can.interface.Bus(
+                channel=self.channel,
+                bustype=self.bustype,
+                bitrate=self.bitrate
+            )
+            print("CAN bus initialized successfully")
+            return True
 
         except Exception as e:
             print(f"Kan niet de bus interface openen: {e}")
             self.bus = None
 
-    def sendCanMessage(self, id, data) -> None:
+    def sendCanMessage(self, id: int, data: list[int]) -> None:
         if self.bus:
             try:
                 message: can.Message = can.Message(arbitration_id=id, data=data, is_extended_id=False)
