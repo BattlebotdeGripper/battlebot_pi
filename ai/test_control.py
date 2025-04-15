@@ -18,7 +18,7 @@ class Control:
         self.K_delta: float = 0.15
         self.K_theta: float = .0
         self.pwm_base: int = 1700
-        self.pwm_left_cal: float = -5.5
+        self.pwm_left_cal: float = -5
         self.pwm_right_cal: float = 0.0
         self.pwm_left: float = self.pwm_base + self.pwm_left_cal
         self.pwm_right: float = self.pwm_base + self.pwm_right_cal
@@ -47,7 +47,6 @@ class Control:
                                        "Delta", "Afstand_L", "Afstand_R", "X", "Y", "Theta_deg"])
 
                         self.x, self.y, self.theta = 0.0, 0.0, 0.0
-                        self.canbus.sendSteering((1750, 1750, 1500))
                         time.sleep(0.2)
                         self.pwm_left = self.pwm_base + self.pwm_left_cal
                         self.pwm_right = self.pwm_base + self.pwm_right_cal
@@ -134,6 +133,13 @@ class Control:
             self.canbus.sendSteering((1500, 1500, 1500))
             time.sleep(0.1)
 
+#    def cleanup(self):
+#        print("Starting cleanup...")
+#        self.rpmtest.cleanup()
+#        if self.canbus:
+#            self.canbus.cleanup()
+#        print("Cleanup completed.")
+
 if __name__ == "__main__":
     control = Control()
     try:
@@ -141,6 +147,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Main KeyboardInterrupt detected, shutting down...")
         control.stop_robot()
+#        control.cleanup()
+#        print("Cleaned up and exiting.")
         sys.exit(0)
 #    finally:
 #        control.cleanup()

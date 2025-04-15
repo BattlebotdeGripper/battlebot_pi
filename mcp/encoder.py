@@ -10,6 +10,7 @@ class CANEncoder:
 
     def callMCP2515Instance(self) -> "CANEncoder":
         if self.mcp2515 is None:
+            # print("@@@@@@@@@@@@@@@@@@")
             self.mcp2515 = MCP2515()
             self.mcp2515.initMcp2515()
         return self
@@ -67,7 +68,7 @@ class CANEncoder:
             return False
 
         now = datetime.now()
-        if now >= self.start_time + timedelta(seconds=20):
+        if now >= self.start_time + timedelta(seconds=5):
             print("20 seconden verstreken, start signaal verzenden via CAN!")
             # can_id: int = 0x200
             # data = [0x01]

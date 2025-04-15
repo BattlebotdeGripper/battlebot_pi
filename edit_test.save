@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cd battlebot/battlebot_pi || exit
+> ai/test_control.py

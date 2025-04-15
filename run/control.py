@@ -54,6 +54,7 @@ class Control:
                     # (channel 1) - linkerwiel
                     # (channel 2) - rechterwiel
                     # (channel 3) - grijparm
+                    # print(channels)
                     steering_data: Tuple[int, ...] = channels[:3]
                     print(steering_data)
 
