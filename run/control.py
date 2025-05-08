@@ -1,87 +1,82 @@
-import sys, os, time, struct
-
+import sys, os, time, struct, asyncio
 from typing import Tuple
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from receiver.receiver_init import ReceiverInit
 from mcp.encoder import CANEncoder
+from sensor.lm393 import LM393SpeedSensor
+from receiver.receiver_async import run_control
 
 class Control:
-    def __init__(self, serial: ReceiverInit = None, canbus: CANEncoder = None) -> None:
-        self.serial: ReceiverInit | None = serial
-        self.canbus: CANEncoder | None = canbus
+    def __init__(self, serial, canbus: CANEncoder = None) -> None:
+        self.serial = serial
+        self.canbus = canbus
+        # self.left_sensor = LM393SpeedSensor(gpio_pin=17)
+        # self.right_sensor = LM393SpeedSensor(gpio_pin=27)
+        self.buffer = b""  # Buffer voor asynchrone data
+        # Correctiefactoren voor motoren (aanpassen na kalibratie)
+        self.left_motor_correction = 1.0  # Vermenigvuldigfactor voor linker motor
+        self.right_motor_correction = 0.99  # Vermenigvuldigfactor voor rechter motor
 
-    def run(self) -> None:
-        # Als er geen UART verbinding met de Receiver is, maak verbinding dan
-        if self.serial is None:
-            print("Geen actieve seriële verbinding. Stoppen...")
-            return
-        
-        # Als er geen CAN verbinding met de MCP2515 is, maak verbinding dan
-        if self.canbus is None:
-            self.canbus: CANEncoder = CANEncoder()
-            self.canbus.callMCP2515Instance()
+    def process_data(self, data: bytes) -> None:
+        """Verwerk ontvangen data, zoals in de originele run-methode."""
+        self.buffer += data
+        while len(self.buffer) >= 32:
+            if self.buffer[0] == 0x20 and self.buffer[1] == 0x40:
+                try:
+                    channels: Tuple[int, ...] = struct.unpack("<14H", self.buffer[2:30])
+                    corrigerende_tik_links = -5
+                    corrigerende_tik_rechts = 0
+                    gripper = channels[2]
+                    links = channels[0]
+                    rechts = channels[1]
 
-        while True:
-            try:
-                # Haal de serieele data op van de Fly-Sky Receiver
-                data: int = self.serial.read(32)
+                    # Detecteer rechtdoor rijden (wanneer links en rechts ongeveer gelijk zijn)
+                    threshold = 50  # Tolerantie voor 'gelijke' stuurwaarden
+                    if abs(links - rechts) <= threshold:
+                        # Pas correctiefactoren toe voor rechtdoor rijden
+                        adjusted_links = int(links * self.left_motor_correction) + corrigerende_tik_links
+                        adjusted_rechts = int(rechts * self.right_motor_correction) + corrigerende_tik_rechts
+                        # Beperk waarden tot geldige PWM-bereik (1000-2000)
+                        adjusted_links = max(1000, min(2000, adjusted_links))
+                        adjusted_rechts = max(1000, min(2000, adjusted_rechts))
+                    else:
+                        # Geen correctie voor bochten (voor nu)
+                        adjusted_links = links + corrigerende_tik_links
+                        adjusted_rechts = rechts + corrigerende_tik_rechts
+                        adjusted_links = max(1000, min(2000, adjusted_links))
+                        adjusted_rechts = max(1000, min(2000, adjusted_rechts))
 
-                # Zorgt ervoor dat de data pas wordt opgehaald als de volledig aantal bytes beschikbaar is
-                if len(data) < 32:
-                    continue 
-
-                data: int = self.serial.read(32)
-
-                # Kijkt naar de headers en de verwachte lengte
-                # 
-                # 0x20 - header dat het een commando pakket is
-                # 0x40 - lengte-indicator van het pakket 32 bytes
-                # len(data) - bevestiging van lengte
-                #
-                if data[0] == 0x20 and data[1] == 0x40 and len(data) == 32:
-
-                    # De data die nodig is
-                    #
-                    # [2:30] - Pak de bytes 2 t/m 29 (14 waardes, 2 bytes ieder)
-                    # 14H - decodeert 14 channelwaardes naar unsigned short
-                    # 
-                    channels: Tuple[int, ...] = struct.unpack("<14H", data[2:30])
-
-                    # Pak alleen eerste 3 channels en stuur door naar de method sendSteerin()
-                    #
-                    # (channel 1) - linkerwiel
-                    # (channel 2) - rechterwiel
-                    # (channel 3) - grijparm
-                    # print(channels)
-                    steering_data: Tuple[int, ...] = channels[:3]
-                    print(steering_data)
-
+                    steering_data = (adjusted_links, adjusted_rechts, gripper)
+                    print(f"Stuurdata: {steering_data}")
+                    self.canbus.sendHeartbeat()
                     self.canbus.sendSteering(steering_data)
+                except Exception as e:
+                    print(f"Fout bij verwerken van iBUS data: {e}")
+                    if self.canbus:
+                        self.canbus.triggerFailsafe()
+            else:
+                print("Ongeldige iBUS data ontvangen of verkeerde lengte")
+                # Schuif buffer op om te zoeken naar nieuwe header
+                self.buffer = self.buffer[1:]
+                continue
+            self.buffer = self.buffer[32:]  # Verwijder verwerkte data
 
-                else:
-                    print("Ongeldige iBUS data ontvangen of verkeerde lengte")
-                    self.serial.reset_input_buffer()
+if __name__ == "__main__":
+    try:
+        receiver_init_instance = ReceiverInit()
+        serial_connection = receiver_init_instance.getSerialConnection()
+        canbus_instance = CANEncoder()
+        canbus = canbus_instance.callMCP2515Instance()
 
-                # De snelheid van data verbinden. LET OP: Belangrijk voor CPU!
-                time.sleep(0.01)
+        controller = Control(serial_connection, canbus)
 
-            except Exception as e:
-                print(f"Fout tijdens uitlezen van iBUS data: {e}")
-                self.serial.reset_input_buffer()
-                time.sleep(0.5)
-                
+        # Haal poort en baudrate uit de seriële verbinding
+        serial_port = serial_connection.port
+        baudrate = serial_connection.baudrate
 
-receiver_init_instance = ReceiverInit()
-receiver = receiver_init_instance.getSerialConnection()
-
-canbus_encoder_instance = CANEncoder()
-canbus_mcp2515_instance = canbus_encoder_instance.callMCP2515Instance()
-
-get_ibus_data = Control(receiver, canbus_mcp2515_instance)
-
-try:
-    channels = get_ibus_data.run()
-except Exception as e:
-    print(f"Error: {e}")
+        # Start de asynchrone loop
+        asyncio.run(run_control(serial_port, baudrate, controller))
+    except Exception as e:
+        print(f"Error: {e}")

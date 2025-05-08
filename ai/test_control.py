@@ -1,14 +1,20 @@
-import sys, os, time, csv, math
+import sys, os, time, csv, math, struct
 from datetime import datetime
+
+from regex import R
+from typing import Tuple
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from mcp.encoder import CANEncoder
 from sensor.lm393 import RPMTest
+from receiver.receiver_init import ReceiverInit
 
 class Control:
-    def __init__(self, canbus: CANEncoder = None) -> None:
+    def __init__(self, serial: ReceiverInit = None, canbus: CANEncoder = None) -> None:
         self.canbus: CANEncoder | None = canbus
+        self.receiver: ReceiverInit | None = serial
+
         self.rpmtest = RPMTest()
         self.wiel_omtrek: float = 39.269
         self.wielbasis: float = 49.0
@@ -17,16 +23,22 @@ class Control:
         self.theta: float = 0.0
         self.K_delta: float = 0.15
         self.K_theta: float = .0
-        self.pwm_base: int = 1700
+        # self.pwm_base: int = 1700
+        self.pwm_right_base = 0
+        self.pwm_left_base = 0
         self.pwm_left_cal: float = -5
         self.pwm_right_cal: float = 0.0
-        self.pwm_left: float = self.pwm_base + self.pwm_left_cal
-        self.pwm_right: float = self.pwm_base + self.pwm_right_cal
+        self.pwm_left: float = self.pwm_left_base + self.pwm_left_cal
+        self.pwm_right: float = self.pwm_right_base + self.pwm_right_cal
         self.running: bool = False
         self.run_number: int = 0
         self.start_time: float = 0.0  # Voor timeout
 
     def run(self, mode: str = "straight", target_distance: float = 200.0, max_run_time: float = 30.0) -> None:
+        if self.receiver is None:
+            print("Geen actieve seriële verbinding. Stoppen...")
+            return
+
         if self.canbus is None:
             self.canbus = CANEncoder()
             self.canbus.callMCP2515Instance()
@@ -36,6 +48,43 @@ class Control:
         start_wait = time.time()
         while True:
             try:
+                if self.receiver is not None:
+                    data: int = self.receiver.read(32)
+
+                    # Zorgt ervoor dat de data pas wordt opgehaald als de volledig aantal bytes beschikbaar is
+                    if len(data) < 32:
+                        continue 
+                    
+                    data: int = self.receiver.read(32)
+
+                    # Kijkt naar de headers en de verwachte lengte
+                    # 
+                    # 0x20 - header dat het een commando pakket is
+                    # 0x40 - lengte-indicator van het pakket 32 bytes
+                    # len(data) - bevestiging van lengte
+                    #
+                    if data[0] == 0x20 and data[1] == 0x40 and len(data) == 32:
+                    
+                        # De data die nodig is
+                        #
+                        # [2:30] - Pak de bytes 2 t/m 29 (14 waardes, 2 bytes ieder)
+                        # 14H - decodeert 14 channelwaardes naar unsigned short
+                        # 
+                        channels: Tuple[int, ...] = struct.unpack("<14H", data[2:30])
+
+                        # Pak alleen eerste 3 channels en stuur door naar de method sendSteerin()
+                        #
+                        # (channel 1) - linkerwiel
+                        # (channel 2) - rechterwiel
+                        # (channel 3) - grijparm
+                        # print(channels)
+                        steering_data: Tuple[int, ...] = channels[:3]
+                        print(steering_data)
+                        self.pwm_left_base = steering_data[0]
+                        self.pwm_right_base = steering_data[1]
+
+                        # self.canbus.sendSteering(steering_data)
+
                 if self.canbus.checkEncoders() and not self.running:
                     self.run_number += 1
                     self.running = True
@@ -48,8 +97,8 @@ class Control:
 
                         self.x, self.y, self.theta = 0.0, 0.0, 0.0
                         time.sleep(0.2)
-                        self.pwm_left = self.pwm_base + self.pwm_left_cal
-                        self.pwm_right = self.pwm_base + self.pwm_right_cal
+                        self.pwm_left = self.pwm_left_base + self.pwm_left_cal
+                        self.pwm_right = self.pwm__right_base + self.pwm_right_cal
 
                         while self.x < target_distance:
                             if time.time() - self.start_time > max_run_time:
@@ -67,8 +116,8 @@ class Control:
 
                             if mode == "straight":
                                 pwm_adjust = (self.K_delta * delta) + (self.K_theta * self.theta)
-                                self.pwm_left = self.pwm_base + self.pwm_left_cal - pwm_adjust
-                                self.pwm_right = self.pwm_base + self.pwm_right_cal + pwm_adjust
+                                self.pwm_left = self.pwm__left_base + self.pwm_left_cal - pwm_adjust
+                                self.pwm_right = self.pwm_right_base + self.pwm_right_cal + pwm_adjust
 
                             self.pwm_left = max(1500, min(1800, self.pwm_left))
                             self.pwm_right = max(1500, min(1800, self.pwm_right))
@@ -140,8 +189,13 @@ class Control:
 #            self.canbus.cleanup()
 #        print("Cleanup completed.")
 
+
 if __name__ == "__main__":
-    control = Control()
+
+    receiver_init_instance = ReceiverInit()
+    receiver = receiver_init_instance.getSerialConnection()
+    
+    control = Control(receiver)
     try:
         control.run(mode="straight", target_distance=10000000.0, max_run_time=30.0)
     except KeyboardInterrupt:

@@ -1,0 +1,327 @@
+# import sys, os, time, csv, math, struct
+# from datetime import datetime
+
+# from regex import R
+# from typing import Tuple
+
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# from mcp.encoder import CANEncoder
+# from sensor.lm393 import RPMTest
+# from receiver.receiver_init import ReceiverInit
+
+# class Control:
+#     def __init__(self, serial: ReceiverInit = None, canbus: CANEncoder = None) -> None:
+#         self.canbus: CANEncoder | None = canbus
+#         self.receiver: ReceiverInit | None = serial
+
+#         # self.rpmtest = RPMTest()
+#         self.wiel_omtrek: float = 39.269
+#         self.wielbasis: float = 49.0
+#         self.x: float = 0.0
+#         self.y: float = 0.0
+#         self.theta: float = 0.0
+#         self.delta: float = 0.0
+#         self.K_delta: float = 0.15
+#         self.K_theta: float = .0
+#         # self.pwm_base: int = 1700
+#         self.pwm_right_base = 0
+#         self.pwm_left_base = 0
+#         self.pwm_left_cal: float = -5
+#         self.pwm_right_cal: float = 0.0
+#         self.pwm_left: float = self.pwm_left_base + self.pwm_left_cal
+#         self.pwm_right: float = self.pwm_right_base + self.pwm_right_cal
+
+#     def run(self, mode: str = "straight") -> None:
+#         # if self.receiver is None:
+#         #     receiver_init_instance = ReceiverInit()
+#         #     self.receiver = receiver_init_instance.getSerialConnection()
+        
+#         # Als er geen UART verbinding met de Receiver is, maak verbinding dan
+#         if self.receiver is None:
+#             print("Geen actieve seriële verbinding. Stoppen...")
+#             return
+        
+
+#         if self.canbus is None:
+#             self.canbus = CANEncoder()
+#             self.canbus.callMCP2515Instance()
+
+#         print("Waiting for encoders to start...")
+#         while True:
+#             try:
+#                 if self.receiver is not None:
+#                     data: int = self.receiver.read(32)
+
+#                     # Zorgt ervoor dat de data pas wordt opgehaald als de volledig aantal bytes beschikbaar is
+#                     if len(data) < 32:
+#                         continue 
+                    
+#                     data: int = self.receiver.read(32)
+
+#                     # Kijkt naar de headers en de verwachte lengte
+#                     # 
+#                     # 0x20 - header dat het een commando pakket is
+#                     # 0x40 - lengte-indicator van het pakket 32 bytes
+#                     # len(data) - bevestiging van lengte
+#                     #
+#                     if data[0] == 0x20 and data[1] == 0x40 and len(data) == 32:
+                    
+#                         # De data die nodig is
+#                         #
+#                         # [2:30] - Pak de bytes 2 t/m 29 (14 waardes, 2 bytes ieder)
+#                         # 14H - decodeert 14 channelwaardes naar unsigned short
+#                         # 
+#                         channels: Tuple[int, ...] = struct.unpack("<14H", data[2:30])
+
+#                         # Pak alleen eerste 3 channels en stuur door naar de method sendSteerin()
+#                         #
+#                         # (channel 1) - linkerwiel
+#                         # (channel 2) - rechterwiel
+#                         # (channel 3) - grijparm
+#                         steering_data: Tuple[int, ...] = channels[:3]
+#                         print(steering_data)
+#                         self.pwm_left_base = steering_data[0]
+#                         self.pwm_right_base = steering_data[1]
+
+#                         # self.canbus.sendSteering(steering_data)
+
+
+#                         # if True or False:
+#                         self.x, self.y, self.theta = 0.0, 0.0, 0.0
+
+#                         self.rpmtest.sensor1.reset()
+#                         self.rpmtest.sensor2.reset()
+#                         time.sleep(0.01)
+
+#                         # # Hij pakt hier de sensor data/omwentelingen 
+#                         self.rpm_left = self.rpmtest.sensor1.get_rpm(0.05)
+#                         self.rpm_right = self.rpmtest.sensor2.get_rpm(0.05)
+#                         self.delta = self.rpm_right - self.rpm_left
+
+#                         # # Later wil ik hier dat er een if statement komt, 
+#                         # # like if pwm_left_base and pwm_right_base diference more then 60 pwm then go to mode steering 
+#                         if mode == "straight":
+#                             pwm_adjust = (self.K_delta * self.delta) + (self.K_theta * self.theta)
+#                             self.pwm_left = self.pwm_left_base + self.pwm_left_cal - pwm_adjust
+#                             self.pwm_right = self.pwm_right_base + self.pwm_right_cal + pwm_adjust
+
+#                         # self.pwm_left = max(1500, min(1500, self.pwm_left))
+#                         # self.pwm_left = self.pwm_left_base
+#                         # self.pwm_right = max(1500, min(1500, self.pwm_right))
+#                         # self.pwm_right = self.pwm_right_base
+#                         self.canbus.sendSteering((int(self.pwm_left_base), int(self.pwm_right_base), 1500))
+
+#                         # tijd_in_minuten = 0.05 / 60
+#                         # afstand_left = (rpm_left * tijd_in_minuten) * self.wiel_omtrek
+#                         # afstand_right = (rpm_right * tijd_in_minuten) * self.wiel_omtrek
+#                         # afstand_gem = (afstand_left + afstand_right) / 2
+#                         # delta_afstand = afstand_right - afstand_left
+#                         # theta_rad = delta_afstand / self.wielbasis
+
+#                         # Door middel van de tijd die is gezet door de time sleep.
+#                         # Kan het afstand bepalen met wiel_omtrek
+#                         # Ik wil een rechte lijn rijden dus de gemiddelde pakken
+#                         tijd_in_minuten = 0.05 / 60
+#                         afstand_left = (self.pwm_left * tijd_in_minuten) * self.wiel_omtrek
+#                         afstand_right = (self.pwm_right * tijd_in_minuten) * self.wiel_omtrek
+#                         afstand_gem = (afstand_left + afstand_right) / 2
+#                         delta_afstand = afstand_right - afstand_left
+#                         theta_rad = delta_afstand / self.wielbasis
+
+#                         # self.theta += theta_rad
+#                         # theta_deg = math.degrees(self.theta)
+#                         # next_x = self.x + (afstand_gem * math.cos(self.theta))
+#                         # self.y += afstand_gem * math.sin(self.theta)
+#                         self.theta += theta_rad
+#                         self.x += afstand_gem * math.cos(self.theta)
+#                         self.y += afstand_gem * math.sin(self.theta)
+
+#                         time.sleep(0.04)
+#             except KeyboardInterrupt:
+#                 print("KeyboardInterrupt detected, shutting down...")
+#                 self.stop_robot()
+# #                self.cleanup()
+#                 print("Cleaned up and exiting.")
+#                 sys.exit(0)
+#             except Exception as e:
+#                 print(f"Error: {e}")
+#                 self.stop_robot()
+#                 time.sleep(0.5)
+
+#     def stop_robot(self):
+#         """Forceer stop van de robot met meerdere pogingen."""
+#         for _ in range(3):  # Probeer 3 keer om zeker te zijn
+#             self.canbus.sendSteering((1500, 1500, 1500))
+#             time.sleep(0.1)
+
+# #    def cleanup(self):
+# #        print("Starting cleanup...")
+# #        self.rpmtest.cleanup()
+# #        if self.canbus:
+# #            self.canbus.cleanup()
+# #        print("Cleanup completed.")
+
+
+# if __name__ == "__main__":
+
+#     receiver_init_instance = ReceiverInit()
+#     receiver = receiver_init_instance.getSerialConnection()
+    
+#     control = Control(receiver)
+#     try:
+#         control.run(mode="straight")
+#     except KeyboardInterrupt:
+#         print("Main KeyboardInterrupt detected, shutting down...")
+#         control.stop_robot()
+# #        control.cleanup()
+# #        print("Cleaned up and exiting.")
+#         sys.exit(0)
+# #    finally:
+# #        control.cleanup()
+
+import sys, os, time, csv, math, struct
+from datetime import datetime
+
+from regex import R
+from typing import Tuple
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from mcp.encoder import CANEncoder
+from sensor.lm393 import RPMTest
+from receiver.receiver_init import ReceiverInit
+
+class Control:
+    def __init__(self, serial: ReceiverInit = None, canbus: CANEncoder = None) -> None:
+        self.canbus: CANEncoder | None = canbus
+        self.receiver: ReceiverInit | None = serial
+
+        self.rpmtest = RPMTest()
+        self.wiel_omtrek: float = 39.269
+        self.wielbasis: float = 49.0
+        # self.x: float = 0.0
+        # self.y: float = 0.0
+        self.theta: float = 0.0
+        self.delta: float = 0.0
+        self.K_delta: float = 0.15
+        self.K_theta: float = .0
+        # self.pwm_base: int = 1700
+        # self.pwm_diff_threshold = 150
+        self.pwm_right_base = 0
+        self.pwm_left_base = 0
+        self.pwm_left_cal: float = -5
+        self.pwm_right_cal: float = 0.0
+        self.pwm_left: float = self.pwm_left_base + self.pwm_left_cal
+        self.pwm_right: float = self.pwm_right_base + self.pwm_right_cal
+
+
+    def run(self, mode: str = "straight") -> None:
+        if self.receiver is None:
+            print("Geen actieve seriële verbinding. Stoppen...")
+            return
+
+        if self.canbus is None:
+            self.canbus = CANEncoder()
+            self.canbus.callMCP2515Instance()
+
+        print("Waiting for encoders to start...")
+        while True:
+            try:
+                if self.receiver is not None:
+                    data: int = self.receiver.read(32)
+
+                    if len(data) < 32:
+                        continue 
+
+                    if data[0] == 0x20 and data[1] == 0x40 and len(data) == 32:
+                        channels: Tuple[int, ...] = struct.unpack("<14H", data[2:30])
+                        steering_data: Tuple[int, ...] = channels[:3]
+                        print(steering_data)
+                        self.pwm_left_base = steering_data[0]
+                        self.pwm_right_base = steering_data[1]
+
+                        # Controleer PWM-verschil om modus te bepalen
+                        # pwm_diff = abs(self.pwm_left_base - self.pwm_right_base)
+                        # current_mode = "steering" if pwm_diff > self.pwm_diff_threshold else "straight"
+
+                        # Reset odometrie voor eenvoud (kan later verfijnd worden)
+                        # self.x, self.y, self.theta = 0.0, 0.0, 0.0
+
+                        # Verkrijg RPM-gegevens
+                        self.rpm_left = self.rpmtest.sensor1.get_rpm(0.05)
+                        self.rpm_right = self.rpmtest.sensor2.get_rpm(0.05)
+                        self.delta = self.rpm_right - self.rpm_left
+
+                        # PWM-aanpassing afhankelijk van de modus
+                        if mode == "straight":
+                            # Proportionele correctie voor theta en delta
+                            pwm_adjust = (self.K_delta * self.delta) + (self.K_theta * self.theta)
+                            self.pwm_left = self.pwm_left_base + self.pwm_left_cal - pwm_adjust
+                            self.pwm_right = self.pwm_right_base + self.pwm_right_cal + pwm_adjust
+                        # else:
+                        #     # In steering modus: geen theta-correctie, gebruik basis PWM
+                        #     self.pwm_left = self.pwm_left_base + self.pwm_left_cal
+                        #     self.pwm_right = self.pwm_right_base + self.pwm_right_cal
+
+                        # # Beperk PWM-waarden (optioneel, afhankelijk van je hardware)
+                        # self.pwm_left = max(1000, min(2000, self.pwm_left))
+                        # self.pwm_right = max(1000, min(2000, self.pwm_right))
+
+                        # Verstuur PWM-signalen via CAN
+                        self.canbus.sendSteering((int(self.pwm_left), int(self.pwm_right), 1500))
+
+                        # Odometrie berekening
+                        tijd_in_minuten = 0.05 / 60
+                        afstand_left = (self.rpm_left * tijd_in_minuten) * self.wiel_omtrek
+                        afstand_right = (self.rpm_right * tijd_in_minuten) * self.wiel_omtrek
+                        afstand_gem = (afstand_left + afstand_right) / 2
+                        delta_afstand = afstand_right - afstand_left
+                        theta_rad = delta_afstand / self.wielbasis
+
+                        # Update theta en positie
+                        self.theta += theta_rad
+                        # self.x += afstand_gem * math.cos(self.theta)
+                        # self.y += afstand_gem * math.sin(self.theta)
+
+                        time.sleep(0.01)
+
+            except KeyboardInterrupt:
+                print("KeyboardInterrupt detected, shutting down...")
+                self.stop_robot()
+                sys.exit(0)
+            except Exception as e:
+                print(f"Error: {e}")
+                self.stop_robot()
+                time.sleep(0.5)
+
+    def stop_robot(self):
+        """Forceer stop van de robot met meerdere pogingen."""
+        for _ in range(3):  # Probeer 3 keer om zeker te zijn
+            self.canbus.sendSteering((1500, 1500, 1500))
+            time.sleep(0.1)
+
+#    def cleanup(self):
+#        print("Starting cleanup...")
+#        self.rpmtest.cleanup()
+#        if self.canbus:
+#            self.canbus.cleanup()
+#        print("Cleanup completed.")
+
+
+if __name__ == "__main__":
+
+    receiver_init_instance = ReceiverInit()
+    receiver = receiver_init_instance.getSerialConnection()
+    
+    control = Control(receiver)
+    try:
+        control.run(mode="straight")
+    except KeyboardInterrupt:
+        print("Main KeyboardInterrupt detected, shutting down...")
+        control.stop_robot()
+#        control.cleanup()
+#        print("Cleaned up and exiting.")
+        sys.exit(0)
+#    finally:
+#        control.cleanup()

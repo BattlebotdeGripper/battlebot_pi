@@ -4,7 +4,7 @@ class ReceiverInit:
     def __init__(self) -> None:
         self.url: str = "/dev/serial0"
         self.baudrate: int = 115200
-        self.timeout: int = 1
+        self.timeout: int = 0.1
         self.serial: serial.Serial | None = None
 
     def setUpSerialConnection(self) -> None:

@@ -28,8 +28,8 @@ class MCP2515:
         if self.bus:
             try:
                 message: can.Message = can.Message(arbitration_id=id, data=data, is_extended_id=False)
+                print(f"Verstuur CAN bericht: ID=0x{id:03X}, Data={data}")
                 self.bus.send(message)
-
             except can.CanError:
                 print("Er is iets fout gegaan met het configureren, bericht is niet verzonden!")
         else:
