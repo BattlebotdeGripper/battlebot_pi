@@ -55,7 +55,7 @@ class CANEncoder:
             data.append(high)
             data.append(low)
 
-        print(f"CAN-data: {can_id:03X} [{len(data)}] {' '.join(f'{b:02X}' for b in data)}")
+        # print(f"CAN-data: {can_id:03X} [{len(data)}] {' '.join(f'{b:02X}' for b in data)}")
 
         self.mcp2515.sendCanMessage(can_id, data)
 
