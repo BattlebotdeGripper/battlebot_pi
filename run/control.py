@@ -18,16 +18,20 @@ class Control:
 
         self.buffer = b""
         self.treshold = 50
+    def calculate_differrence(self, wiel_a, wiel_b):
+        min_waarde_wiel = min(wiel_a, wiel_b)
+        max_waarde_wiel = max(wiel_a, wiel_b)
+
+        difference_values = int((max_waarde_wiel % min_waarde_wiel) / 2)
+        print(f"Verschil {difference_values}")
+        return difference_values
 
     def difference_wheels_pwm(self, steering_data):
         wiel_a = steering_data[0]
         wiel_b = steering_data[1]
         gripper = steering_data[2]
 
-        min_waarde_wiel = min(wiel_a, wiel_b)
-        max_waarde_wiel = max(wiel_a, wiel_b)
-
-        difference_values = int((max_waarde_wiel % min_waarde_wiel) / 2)
+        difference_values = self.calculate_differrence(wiel_a, wiel_b)
 
         if wiel_a > wiel_b:
             wiel_a -= difference_values 
@@ -48,20 +52,30 @@ class Control:
                     links = channels[0]
                     rechts = channels[1]
 
-                    
                     steering_data = (links, rechts, gripper)
-                    adjust_links, adjust_rechts, adjust_gripper = self.difference_wheels_pwm(steering_data)
 
-                    if adjust_links >= 1625:
-                        adjust_rechts += self.threshold
-                        # print(adjust_links)
+                    difference = self.calculate_differrence(links, rechts)
 
-                    tuple_data = (adjust_links, adjust_rechts, adjust_gripper)
+                    # print(steering_data)
+                    if difference < (self.treshold + 10):
 
-                    print(f"Stuurdata: {tuple_data}")
+                        adjust_links, adjust_rechts, adjust_gripper = self.difference_wheels_pwm(steering_data)
 
+                    # Zorg ervoor dat de wielen even hard draaien
+                        if adjust_links >= 1625:
+                            adjust_rechts += self.treshold
+                            # print(adjust_links)
+                            if adjust_rechts >= 2000:
+                                adjust_rechts = 2000
+
+                        tuple_data = (adjust_links, adjust_rechts, adjust_gripper)
+
+                        print(f"Stuurdata: {tuple_data}")
+
+                        self.canbus.sendSteering(tuple_data)
+                    else:
+                        self.canbus.sendSteering(steering_data)
                     self.canbus.sendHeartbeat()
-                    self.canbus.sendSteering(tuple_data)
 
                 except Exception as e:
                     print(f"Fout bij verwerken van iBUS data: {e}")

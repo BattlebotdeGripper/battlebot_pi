@@ -22,7 +22,3 @@
 
 # difference_wheels_pwm(steering_data)
 
-
-
-if wiel_b >= 1650:
-    wiel_a += 25
