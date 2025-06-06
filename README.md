@@ -7,23 +7,23 @@
 ---
 
 ## Benodigheden
-- **Raspberry Pi 5**
-- **MCP2515 CAN-module**
-- **Fly-Sky FS-iA10B**
-- **Jumper wires**
+- **1x Raspberry Pi 5**
+- **2x MCP2515 CAN-module**
+- **1x Fly-Sky FS-iA10B Receiver**
+- **Jumper wires (Zie Handleiding)**
+- **Raspberry Pi Pico 2**
 
 ---
 
 ## Hardware aansluiten
 
 ### **CAN-bus bedrading**
-- Zie onderstaande repository voor aansluiting van de MCP2515-module:
+- Zie onderstaande repository (of Technisch Rapport) voor aansluiting van de MCP2515-module:
 
 https://github.com/Znooptokkie/mcp2515/
 
-
 ### **Fly-Sky FS-iA10B**
-- Voordat er een serieel signaal van de receiver ontvangen kkan worden, moet je het volgende eerst doen:
+- Voordat er een serieel signaal van de receiver ontvangen kan worden, moet je het volgende eerst doen:
 
 **Receiver**
 1. Pak een Jumper wire (female|female).
@@ -34,7 +34,6 @@ https://github.com/Znooptokkie/mcp2515/
 
 **Controller**
 1. Power knop aandoen en bindknop ingedrukt houden. Gelukt zodra LED op Receiver niet meer knippert.
-
 
 #### Aansluting Fly-Sky FS-iA10B - Raspberry Pi 5
 
@@ -51,15 +50,21 @@ https://github.com/Znooptokkie/mcp2515/
 
 ### Raspi-config
 
-- **Voer het volgende commando uit in de terminal:**
+**Open de terminal:**
 
-- Ga naar **Interface options** > **Serial Port**:
-    * No 
-    * Yes
+```bash
+CTRL + ALT + T
+```
+
+- **Voer het volgende commando uit in de terminal:**
 
 ```bash
 sudo raspi-config
 ```
+
+- Ga naar **Interface options** > **Serial Port en vul bij de twee aankomende schermen het volgende in**:
+    * No 
+    * Yes
 
 - **Herstart de Raspberry of ga door naar volgende stap:**
 
